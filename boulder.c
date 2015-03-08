@@ -19,102 +19,57 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-
 #include <stdio.h>
-#include <string.h>
 
 /* Set the competition parameters here */
 #define N_PROBLEMS 20
 #define N_SCORES 5
-const char scores[N_SCORES] = { 10, 7, 4, 1, 0 };
-
-/* Table data separator */
-#define TABLE_DELIM ", "
-
-/* This is where we will store the result combination */
 #define N_SLOTS (N_PROBLEMS + (N_SCORES - 1))
-char field[N_SLOTS];
+char field[N_SLOTS], scores[N_SCORES] = { 10, 7, 4, 1, 0 };
 
-void get_hits(char *field, int n_slots, int n_scores, int *hits)
-{
-	int i, group_no = 0, n_hits = 0;
-
-	for (i = 0; i < n_slots; i++) {
-		if (field[i] == 0) {
-			hits[group_no++] = n_hits;
-			n_hits = 0;
-		} else {
-			n_hits++;
-		}
-	}
-
-	/* Add on the last set */
-	hits[group_no] = n_hits;
-}
-
-void print_table_header(int n_scores, const char *scores)
-{
+/* Recursively place separators and print rows. */
+void place_sep(char *field, int start, int depth) {
 	int i;
 
-	for (i = 0; i < n_scores; i++) {
-		printf("\"%u\"%s", scores[i], TABLE_DELIM);
-	}
-	printf("\"total\"\n");
-}
-
-void print_table_row(char *field, int n_slots, int n_scores,
-		const char *scores)
-{
-	int hits[n_scores];
-	int i, total = 0;
-
-	get_hits(field, n_slots, n_scores, hits);
-
-	for (i = 0; i < n_scores; i++) {
-		printf("%4u%s", hits[i], TABLE_DELIM);
-		total += hits[i] * scores[i];
-	}
-	printf("%4u\n", total);
-}
-
-/* Recursively place separators. Returns number of combinations */
-int place_zero(char *field, int start, int depth)
-{
-	int i;
-	int total = 0;
-
-	for (i = start; i < N_SLOTS; i++)
-	{
+	for (i = start; i < N_SLOTS; i++) {
 		/* Fill in our previous separator */
 		if (i > start)
-			field[i - 1] = 1;
+			field[i - 1] = 0;
 
 		/* Place our next separator */
-		field[i] = 0;
+		field[i] = 1;
 
 		if (depth > 0) {
 			/* Recursively place the rest of the separators */
-			total += place_zero(field, i + 1, depth - 1);
+			place_sep(field, i + 1, depth - 1);
 		} else {
 			/* Or calculate the result */
-			print_table_row(field, N_SLOTS, N_SCORES, scores);
-			total++;
+			int hits[N_SCORES] = {0}, j, total = 0, group_no = 0;
+
+			for (j = 0; j <= N_SLOTS; j++) {
+				if (field[j] || j == N_SLOTS) {
+					total += hits[group_no] * scores[group_no];
+					printf("%4u%s", hits[group_no++], ", ");
+				} else {
+					hits[group_no]++;
+				}
+			}
+			printf("%4u\n", total);
 		}
 	}
 
 	/* Fill in our final hole */
-	field[i - 1] = 1;
-	return total;
+	field[i - 1] = 0;
 }
 
-int main(int argc, char *argv[])
-{
-	memset(field, 1, sizeof(field));
+void  main(int argc, char *argv[]) {
 
-	print_table_header(N_SCORES, scores);
+	/* Print the table header */
+	for (int i = 0; i < N_SCORES; i++) {
+		printf("\"%u\"%s", scores[i], ", ");
+	}
+	printf("\"total\"\n");
 
 	/* Recursively calculate scores */
-	place_zero(field, 0, N_SCORES - 2);
-
-	return 0;
+	place_sep(field, 0, N_SCORES - 2);
 }
